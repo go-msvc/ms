@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/clbanning/mxj"
+	"github.com/go-msvc/logger"
 	"github.com/go-msvc/ms"
 	"github.com/pkg/errors"
 )
@@ -21,7 +22,7 @@ func New(domain ms.IDomain) ms.IServer {
 
 //server implements ms.IServer
 type server struct {
-	ms.ILogger
+	logger.ILogger
 	domain ms.IDomain
 	idGen  ms.IIdGen
 }
