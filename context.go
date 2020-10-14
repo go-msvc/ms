@@ -1,34 +1,50 @@
 package ms
 
 import (
+	"github.com/go-msvc/config"
 	"github.com/go-msvc/logger"
 )
 
 type IContext interface {
 	logger.ILogger
+
 	Cancel() func()
-	GetConfig(name string) interface{}
+
+	//call this in operation handlers to get
+	//current copy of domainDefaultStructValue that was passed into NewDomain(...)
+	//its fields are config values or constructed from config values
+	DomainStruct() interface{}
 }
 
-func NewContext(logger logger.ILogger, configSet map[string]interface{}) IContext {
-	return &context{
+func newContext(logger logger.ILogger, cfg config.IConfigurable) IContext {
+	ctx := &context{
 		ILogger: logger,
-		config:  configSet,
 	}
+	if cfg != nil {
+		ctx.domainStruct, ctx.cancelStructFunc = cfg.Use()
+	}
+	return ctx
 }
 
 type context struct {
 	logger.ILogger
-	config map[string]interface{}
+	domainStruct     interface{}
+	cancelStructFunc func()
 }
 
-func (ctx context) Cancel() func() {
+func (ctx *context) DomainStruct() interface{} {
+	return ctx.domainStruct
+}
+
+func (ctx *context) Cancel() func() {
+	log.Debugf("Cancel()")
+	if ctx.cancelStructFunc != nil {
+		ctx.cancelStructFunc()
+		ctx.cancelStructFunc = nil
+	}
 	return ctx.cancel
 }
 
 func (ctx context) cancel() {
-}
-
-func (ctx context) GetConfig(name string) interface{} {
-	return ctx.config[name]
+	log.Debugf("cancel()")
 }

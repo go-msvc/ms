@@ -2,15 +2,21 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/clbanning/mxj"
+	"github.com/go-msvc/errors"
 	"github.com/go-msvc/logger"
 	"github.com/go-msvc/ms"
-	"github.com/pkg/errors"
 )
+
+//todo: unknown operation does not respond with NotFound!
+//todo: ensure loggers are released when context ends
+//todo: logger names not reflect package name? e.g. .../logger/domain/...
+//todo: context must timeout with error result
+//todo: configurable server address
+//todo: configurable server type e.g. rest vs nats or http+html
 
 func New(domain ms.IDomain) ms.IServer {
 	return server{
@@ -35,13 +41,10 @@ func (s server) Run() error {
 func (s server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	id := s.idGen.New()
 	ctx := context{
-		IContext: ms.NewContext(
-			s.ILogger.NewLogger(id),  //a child of server logger
-			s.domain.CurrentConfig(), //a snapshot of current config
-		),
-		res:  res,
-		req:  req,
-		path: pathSplit(req.URL.Path),
+		IContext: s.domain.NewContext(id),
+		res:      res,
+		req:      req,
+		path:     pathSplit(req.URL.Path),
 	}
 	defer ctx.Cancel()
 
@@ -53,8 +56,10 @@ func (s server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		err = errors.Errorf("path must start with /oper/<oper>")
 	}
 	if err != nil {
+		ctx.Debugf("Serve Failed: %+v", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+	ctx.Debugf("Serve Success")
 }
 
 type context struct {
@@ -69,10 +74,13 @@ func (s server) serveOper(ctx context) error {
 	result, response := o.Run(ctx)
 
 	if result != nil && result.Error() != nil {
-		http.Error(ctx.res, fmt.Sprintf("oper failed: %v", result), http.StatusNoContent)
+		ctx.Debugf("Oper Failed: %+v", result)
+		jsonResult, _ := json.Marshal(result)
+		http.Error(ctx.res, string(jsonResult), http.StatusInternalServerError)
 		return nil
 	}
 
+	ctx.Debugf("Oper Success")
 	if response != nil {
 		//encode response body
 		jsonResponse, err := json.Marshal(response)

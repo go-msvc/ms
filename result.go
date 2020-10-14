@@ -7,6 +7,19 @@ import (
 	"github.com/go-msvc/errors"
 )
 
+func ErrorResult(err error, resultCode IResultCode) IResult {
+	r := Result{
+		Code: resultCode.Code(),
+		Desc: resultCode.Desc(),
+	}
+	if err != nil {
+		r.Details = err.Error()
+	} else {
+		r.Details = "Error"
+	}
+	return r
+}
+
 type Result struct {
 	Code    int
 	Desc    string

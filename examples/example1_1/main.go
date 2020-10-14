@@ -9,29 +9,19 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-msvc/errors"
 	"github.com/go-msvc/ms"
 	"github.com/go-msvc/ms/rest"
 )
 
 func main() {
-	domain := ms.NewDomain().
-		WithConfig("greeter", config{Name: "Samuel"}).
+	//this is the minimal effort you need to define a micro-service
+	domain := ms.New(nil).
 		WithOper("hello", helloRequest{}).
 		WithOper("cheers", cheersRequest{})
 
+	//and serve it on a rest interface that defaults to address localhost:12345
+	//next examples will show you how to configure things
 	rest.New(domain).Run()
-}
-
-type config struct {
-	Name string `json:"name"`
-}
-
-func (c *config) Validate() error {
-	if len(c.Name) == 0 {
-		return errors.Errorf("missing name")
-	}
-	return nil
 }
 
 type helloRequest struct{}
@@ -40,17 +30,17 @@ type helloResponse struct {
 	Greeting string `json:"greeting"`
 }
 
-func (o helloRequest) Run(ctx ms.IContext) (ms.IResult, ms.IResponse) {
+func (helloRequest) Run(ctx ms.IContext) (ms.IResult, ms.IResponse) {
 	ctx.Debugf("hello")
-	cfg := ctx.GetConfig("greeter").(config)
 	return nil, helloResponse{
-		Greeting: fmt.Sprintf("%s says hello", cfg.Name),
+		Greeting: fmt.Sprintf("Hello"),
 	}
 }
 
 type cheersRequest struct{}
 
-func (o cheersRequest) Run(ctx ms.IContext) (ms.IResult, ms.IResponse) {
+func (cheersRequest) Run(ctx ms.IContext) (ms.IResult, ms.IResponse) {
 	ctx.Debugf("cheers")
-	return ms.Result{Code: 1, Desc: "NYI"}, nil
+	//let operation fail like this:
+	return ms.Result{Code: 1, Desc: "NYI", Details: "Cheers is not yet implemented"}, nil
 }

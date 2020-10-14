@@ -2,7 +2,7 @@ package nats
 
 import (
 	"github.com/go-msvc/ms"
-	"github.com/pkg/errors"
+	"github.com/go-msvc/errors"
 )
 
 func New() ms.IServer {
